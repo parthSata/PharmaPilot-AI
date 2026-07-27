@@ -26,7 +26,12 @@ export interface RiskAssessment {
 export interface ChatMessage {
   id: string;
   sender: 'user' | 'assistant';
-  text: string;
+  text?: string;
+  fileAttachment?: {
+    name: string;
+    size?: string;
+    type?: string;
+  };
   timestamp: string;
   riskAssessment?: RiskAssessment;
 }

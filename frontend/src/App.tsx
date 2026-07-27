@@ -1,8 +1,6 @@
 import { Provider } from 'react-redux';
 import { store } from './store';
-import { Header } from './components/Header';
-import { ComplaintForm } from './components/LeftPanel/ComplaintForm';
-import { AssistantPanel } from './components/RightPanel/AssistantPanel';
+import { Header, Footer, ComplaintForm, AssistantPanel } from './components';
 
 function AppContent() {
   return (
@@ -22,6 +20,9 @@ function AppContent() {
           <AssistantPanel />
         </section>
       </main>
+
+      {/* Enterprise App Footer */}
+      <Footer />
     </div>
   );
 }
