@@ -1,9 +1,7 @@
 import type { ComplaintState, RiskAssessment } from '../types';
 
 export class AiService {
-  /**
-   * Parse prompt text into complaint form field updates
-   */
+
   public static parseComplaintPrompt(
     promptText: string,
     currentState: ComplaintState
@@ -75,9 +73,7 @@ export class AiService {
     };
   }
 
-  /**
-   * Generates AI Risk Assessment based on complaint details
-   */
+
   public static calculateRiskAssessment(severity: string): RiskAssessment {
     if (severity === 'Critical') {
       return {
