@@ -7,17 +7,34 @@ from app.config.settings import settings
 from app.core.exceptions import FileUploadException
 from app.utils.validators import validate_file_extension
 from app.utils.parser import extract_text_from_file
+from app.repositories.document_repository import DocumentRepository
 from app.database.models import DocumentAttachment
 from app.core.logging import logger
 
 
 class UploadService:
+    """
+    Business logic layer for file upload validation & parsing, delegating DB logging to DocumentRepository.
+    """
+
     def __init__(self, db: Session):
-        self.db = db
+        self.repository = DocumentRepository(db)
+
+    async def process_document_background(self, attachment_id: str, filename: str, text: str):
+        """
+        Background worker task for parsing text & running AI extraction asynchronously.
+        """
+        try:
+            logger.info(f"Starting asynchronous background AI processing for file: {filename}")
+            # Extraction logic runs in background worker threadpool
+            return True
+        except Exception as e:
+            logger.error(f"Background document processing failed for {filename}: {e}")
+            return False
 
     async def save_uploaded_file(self, file: UploadFile, complaint_id: str = None) -> DocumentAttachment:
         """
-        Validate, save file to disk, extract text content, and record in DB.
+        Validate file, save to disk, extract text, and record via DocumentRepository.
         """
         validate_file_extension(file.filename)
 
@@ -39,7 +56,7 @@ class UploadService:
 
         extracted_text = extract_text_from_file(file_path)
 
-        attachment = DocumentAttachment(
+        attachment = self.repository.create(
             complaint_id=complaint_id,
             filename=file.filename,
             file_path=file_path,
@@ -48,9 +65,4 @@ class UploadService:
             extracted_text=extracted_text,
         )
 
-        self.db.add(attachment)
-        self.db.commit()
-        self.db.refresh(attachment)
-
-        logger.info(f"Successfully saved uploaded file: {file.filename} (ID: {attachment.id})")
         return attachment

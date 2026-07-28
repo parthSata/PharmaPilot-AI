@@ -19,7 +19,7 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5173",
     ]
 
-    DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/pharmapilot_db"
+    DATABASE_URL: str = ""
     UPLOAD_DIR: str = "./uploads"
     STATIC_DIR: str = "./static"
 
@@ -28,7 +28,7 @@ class Settings(BaseSettings):
 
     # Groq LLM Settings
     GROQ_API_KEY: str = ""
-    GROQ_MODEL_NAME: str = "gemma2-9b-it"  # Option: llama-3.3-70b-versatile
+    GROQ_MODEL_NAME: str = "llama-3.3-70b-versatile"
     OPENAI_API_KEY: str = ""
 
     model_config = SettingsConfigDict(

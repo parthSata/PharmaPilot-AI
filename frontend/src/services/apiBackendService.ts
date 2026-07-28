@@ -23,7 +23,6 @@ export class ApiBackendService {
         prompt: promptText,
         currentFormState: currentState || null,
       });
-      console.log('[API Call] Groq Backend Response:', response.data);
       return response.data;
     } catch (error) {
       console.error('[API Error] Groq Backend request failed:', error);
