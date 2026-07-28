@@ -55,6 +55,10 @@ async def app_exception_handler(request: Request, exc: AppException):
     )
 
 
+# Ensure mount directories exist prior to mounting
+os.makedirs(settings.STATIC_DIR, exist_ok=True)
+os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+
 # Mount Static and Upload directories
 app.mount("/static", StaticFiles(directory=settings.STATIC_DIR), name="static")
 app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")

@@ -67,6 +67,7 @@ class ComplaintUpdate(BaseModel):
     class Config:
         populate_by_name = True
         from_attributes = True
+        by_alias = False
 
 
 class ComplaintResponse(ComplaintBase):

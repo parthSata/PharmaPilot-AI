@@ -77,63 +77,69 @@ class ComplaintAgent:
                     HumanMessage(content=f"User prompt: {prompt}\nCurrent state: {json.dumps(current_state or {})}")
                 ]
                 llm_response = self.llm.invoke(messages)
-                logger.info(f"Groq LLM response received: {str(llm_response.content)[:100]}")
+                content_str = str(llm_response.content).strip()
+                logger.info(f"Groq LLM raw response: {content_str[:150]}")
+                
+                # Extract JSON block if wrapped in markdown
+                json_match = re.search(r"\{.*\}", content_str, re.DOTALL)
+                if json_match:
+                    extracted_json = json.loads(json_match.group(0))
+                    
+                    if extracted_json.get("customerName"): updates.customerName = extracted_json["customerName"]
+                    if extracted_json.get("complaintSource"): updates.complaintSource = extracted_json["complaintSource"]
+                    if extracted_json.get("productName"): updates.productName = extracted_json["productName"]
+                    if extracted_json.get("productStrength"): updates.productStrength = extracted_json["productStrength"]
+                    if extracted_json.get("batchNumber"): updates.batchNumber = extracted_json["batchNumber"]
+                    if extracted_json.get("manufacturingDate"): updates.manufacturingDate = extracted_json["manufacturingDate"]
+                    if extracted_json.get("expiryDate"): updates.expiryDate = extracted_json["expiryDate"]
+                    if extracted_json.get("affectedQuantity"): updates.affectedQuantity = extracted_json["affectedQuantity"]
+                    if extracted_json.get("complaintCategory"): updates.complaintCategory = extracted_json["complaintCategory"]
+                    if extracted_json.get("complaintDescription"): updates.complaintDescription = extracted_json["complaintDescription"]
+                    if extracted_json.get("initialSeverity"): updates.initialSeverity = extracted_json["initialSeverity"]
+                    if extracted_json.get("priority"): updates.priority = extracted_json["priority"]
+                    
+                    if extracted_json.get("lastUpdatedField"):
+                        last_updated_field = extracted_json["lastUpdatedField"]
+                    if extracted_json.get("isEditMode") is True:
+                        is_edit = True
             except Exception as e:
-                logger.warning(f"Groq LLM invocation failed ({e}), using fallback rules.")
+                logger.warning(f"Groq LLM invocation/parsing failed ({e}), using regex rules.")
 
-        # Batch number extraction / correction
-        batch_match = re.search(r"batch\s*(?:number|no|#)?\s*(?:to|is|=)?\s*([A-Za-z0-9\-]+)", prompt, re.IGNORECASE)
-        if batch_match:
-            updates.batchNumber = batch_match.group(1).upper()
-            last_updated_field = "batchNumber"
+        # Regex fallback for batch number extraction / correction
+        if not updates.batchNumber:
+            batch_match = re.search(r"batch\s*(?:number|no|#)?\s*(?:to|is|=)?\s*([A-Za-z0-9\-]+)", prompt, re.IGNORECASE)
+            if batch_match:
+                updates.batchNumber = batch_match.group(1).upper()
+                last_updated_field = "batchNumber"
 
-        # Affected quantity extraction / correction
-        qty_match = re.search(r"(?:quantity|affected|amount)\s*(?:to|is|=)?\s*(\d+\s*(?:bottles|vials|packs|units)?)", prompt, re.IGNORECASE)
-        if qty_match:
-            updates.affectedQuantity = qty_match.group(1)
-            last_updated_field = "affectedQuantity"
+        # Regex fallback for affected quantity
+        if not updates.affectedQuantity:
+            qty_match = re.search(r"(?:quantity|affected|amount)\s*(?:to|is|=)?\s*(\d+\s*(?:bottles|vials|packs|units|boxes)?)", prompt, re.IGNORECASE)
+            if qty_match:
+                updates.affectedQuantity = qty_match.group(1)
+                last_updated_field = "affectedQuantity"
 
-        # Product name extraction
-        if "paracetamol" in text_lower or "panadol" in text_lower:
-            updates.productName = "Paracetamol Oral Suspension"
-        elif "amoxicillin" in text_lower:
-            updates.productName = "Amoxicillin Trihydrate Suspension"
-
-        if is_edit and last_updated_field:
+        if is_edit and (last_updated_field or updates.batchNumber or updates.affectedQuantity):
             response_msg = (
                 f"Updated complaint details per your correction:\n"
                 f"• Batch Number: {updates.batchNumber or (current_state.get('batchNumber') if current_state else 'Unchanged')}\n"
                 f"• Affected Quantity: {updates.affectedQuantity or (current_state.get('affectedQuantity') if current_state else 'Unchanged')}\n\n"
                 f"All other complaint details remain unchanged."
             )
-            risk = self.calculate_risk_assessment("Major")
+            risk = self.calculate_risk_assessment(updates.initialSeverity or "Major")
             return updates, last_updated_field, True, risk, response_msg
 
-        # Initial prompt default populated updates
-        if not updates.customerName:
-            updates.customerName = "MediLife Pharma Distributors"
-        if not updates.complaintSource:
-            updates.complaintSource = "Quality Alert Email Attachment (PDF)"
-        if not updates.productName:
-            updates.productName = "Paracetamol Oral Suspension"
-        if not updates.productStrength:
-            updates.productStrength = "250mg / 5ml"
-        if not updates.batchNumber:
-            updates.batchNumber = "PRC-44019"
-        if not updates.manufacturingDate:
-            updates.manufacturingDate = "2025-08-15"
-        if not updates.expiryDate:
-            updates.expiryDate = "2027-08-14"
-        if not updates.affectedQuantity:
-            updates.affectedQuantity = "500 bottles"
-        if not updates.complaintCategory:
-            updates.complaintCategory = "Precipitate / Sedimentation"
+        # Ensure complaintDescription is set if missing
         if not updates.complaintDescription:
-            updates.complaintDescription = f"Customer reported quality issue: {prompt}"
+            updates.complaintDescription = prompt
 
-        risk = self.calculate_risk_assessment("Critical")
+        risk = self.calculate_risk_assessment(updates.initialSeverity or "Critical")
+        
+        customer_str = updates.customerName or "Customer"
+        product_str = f"{updates.productName or ''} {updates.productStrength or ''}".strip() or "Product"
+        
         response_msg = (
-            f"Extracted complaint information using Groq ({self.model_name}) for {updates.customerName} regarding {updates.productName} {updates.productStrength}. "
+            f"Extracted complaint information using Groq ({self.model_name}) for {customer_str} regarding {product_str}. "
             f"Form fields on the left panel have been populated automatically."
         )
 

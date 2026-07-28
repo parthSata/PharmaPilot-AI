@@ -2,16 +2,22 @@ import React, { useState } from 'react';
 import { Sparkles, RotateCcw, Save, CheckCircle2 } from 'lucide-react';
 import { useComplaintForm } from '../../hooks';
 import { COMPLAINT_FORM_SECTIONS } from '../../constants/complaint.constants';
+import { ApiBackendService } from '../../services/apiBackendService';
 import { FormInputGroup, Button, Badge, Card } from '../index';
 
 export const ComplaintForm: React.FC = React.memo(() => {
   const { complaint, handleReset } = useComplaintForm();
   const [isSaved, setIsSaved] = useState(false);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!complaint.isFilled) return;
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 3000);
+    try {
+      await ApiBackendService.createComplaint(complaint);
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 3000);
+    } catch (error) {
+      console.error('Failed to save complaint to PostgreSQL backend:', error);
+    }
   };
 
   const headerContent = (

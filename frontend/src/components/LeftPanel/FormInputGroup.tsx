@@ -38,7 +38,7 @@ export const FormInputGroup: React.FC<FormInputGroupProps> = ({
           <textarea
             disabled
             rows={3}
-            value={value}
+            value={value || ''}
             placeholder={placeholder}
             className={`w-full rounded-lg border px-3.5 py-2.5 text-sm transition-all duration-300 resize-none font-medium ${
               hasValue
@@ -50,7 +50,7 @@ export const FormInputGroup: React.FC<FormInputGroupProps> = ({
           <input
             type={type}
             disabled
-            value={value}
+            value={value || ''}
             placeholder={placeholder}
             className={`w-full rounded-lg border px-3.5 py-2.5 text-sm transition-all duration-300 font-medium ${
               hasValue
