@@ -139,7 +139,7 @@ class ComplaintAgent:
         product_str = f"{updates.productName or ''} {updates.productStrength or ''}".strip() or "Product"
         
         response_msg = (
-            f"Extracted complaint information using Groq ({self.model_name}) for {customer_str} regarding {product_str}. "
+            f"Extracted complaint information for {customer_str} regarding {product_str}. "
             f"Form fields on the left panel have been populated automatically."
         )
 

@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     STATIC_DIR: str = "./static"
 
     MAX_UPLOAD_SIZE_MB: int = 10
-    ALLOWED_EXTENSIONS: List[str] = ["pdf", "png", "jpg", "jpeg", "txt"]
+    ALLOWED_EXTENSIONS: List[str] = ["pdf", "docx", "png", "jpg", "jpeg", "txt"]
 
     # Groq LLM Settings
     GROQ_API_KEY: str = ""

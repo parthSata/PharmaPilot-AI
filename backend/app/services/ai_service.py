@@ -32,33 +32,21 @@ class AIService:
 
     def extract_from_document_text(self, filename: str, text: str) -> AiDocumentExtractionResponse:
         """
-        Parse document content and return auto-filled complaint fields + risk card.
+        Parse document content and return auto-filled complaint fields + risk card using Groq AI.
         """
-        updates, _, _, risk, _ = self.agent.process_natural_language_prompt(
-            prompt=f"Extracted document text from {filename}:\n{text}"
+        prompt_text = f"Extract pharmaceutical complaint details from uploaded document file {filename}:\n{text}" if text.strip() else f"Process quality document attachment: {filename}"
+        
+        updates, _, _, risk, message = self.agent.process_natural_language_prompt(
+            prompt=prompt_text
         )
 
-        auto_filled = ComplaintUpdate(
-            customerName="MediLife Pharma Distributors",
-            complaintSource=f"Quality Alert Email Attachment ({filename})",
-            productName="Paracetamol Oral Suspension",
-            productStrength="250mg / 5ml",
-            batchNumber="PRC-44019",
-            manufacturingDate="2025-08-15",
-            expiryDate="2027-08-14",
-            affectedQuantity="500 bottles",
-            complaintCategory="Precipitate / Sedimentation",
-            complaintDescription=f"Customer reported dense white precipitate at bottom of Paracetamol Oral Suspension bottles from batch PRC-44019. Document parsed from {filename}.",
-            initialSeverity="Critical",
-            priority="Urgent"
-        )
-
-        doc_risk = self.agent.calculate_risk_assessment("Critical")
+        if not updates.complaintSource:
+            updates.complaintSource = f"Quality Alert Attachment ({filename})"
 
         return AiDocumentExtractionResponse(
             filename=filename,
-            extractedText=text[:500] if text else "",
-            autoFilledData=auto_filled,
-            riskAssessment=doc_risk,
-            message=f"Successfully parsed document {filename}. Complaint form fields auto-populated and risk classification generated."
+            extractedText=text[:500] if text else "Document content parsed.",
+            autoFilledData=updates,
+            riskAssessment=risk or self.agent.calculate_risk_assessment("Critical"),
+            message=message or f"Successfully parsed document {filename} using Groq AI."
         )

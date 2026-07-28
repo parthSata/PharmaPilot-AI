@@ -50,7 +50,7 @@ export const FileUploadArea: React.FC<FileUploadAreaProps> = ({ onFileUpload, is
         <input
           ref={fileInputRef}
           type="file"
-          accept=".pdf,.docx,.txt,.eml"
+          accept=".pdf,.docx,.txt"
           className="hidden"
           onChange={handleFileChange}
         />
@@ -61,7 +61,7 @@ export const FileUploadArea: React.FC<FileUploadAreaProps> = ({ onFileUpload, is
 
         <div>
           <p className="text-xs font-semibold text-slate-800">
-            Drop Complaint PDF <span className="text-slate-400 font-normal">or</span>{' '}
+            Drop Complaint PDF / DOCX <span className="text-slate-400 font-normal">or</span>{' '}
             <span className="text-blue-600 underline underline-offset-2">Browse File</span>
           </p>
           <p className="text-[11px] text-slate-400 mt-0.5">Max file size: 10MB</p>
@@ -69,7 +69,7 @@ export const FileUploadArea: React.FC<FileUploadAreaProps> = ({ onFileUpload, is
 
         {/* Supported Format Pills */}
         <div className="flex items-center gap-1.5 mt-1">
-          {['PDF', 'DOCX', 'TXT', 'EML'].map((ext) => (
+          {['PDF', 'DOCX', 'TXT'].map((ext) => (
             <span
               key={ext}
               className="text-[10px] font-semibold px-2 py-0.5 rounded bg-white text-slate-600 border border-slate-200 shadow-2xs"

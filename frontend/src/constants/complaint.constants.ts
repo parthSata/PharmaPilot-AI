@@ -37,6 +37,6 @@ export const COMPLAINT_FORM_SECTIONS = [
   },
 ] as const;
 
-export const SUPPORTED_FILE_TYPES = ['PDF', 'DOCX', 'TXT', 'EML'] as const;
+export const SUPPORTED_FILE_TYPES = ['PDF', 'DOCX', 'TXT'] as const;
 export const MAX_FILE_SIZE_MB = 10;
 export const PLACEHOLDER_WAITING_AI = 'Waiting for AI...';

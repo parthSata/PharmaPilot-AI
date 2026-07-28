@@ -70,7 +70,7 @@ export const useAiAssistant = () => {
               timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               riskAssessment: riskAssessment
                 ? {
-                    severity: (extractedUpdates && extractedUpdates.initialSeverity) || 'Critical',
+                    severity: ((extractedUpdates && extractedUpdates.initialSeverity) as 'Critical' | 'Major' | 'Minor') || 'Critical',
                     riskLevel: riskAssessment.riskLevel || riskAssessment.risk_level || 'High Risk',
                     nextAction: (riskAssessment.recommendedActions && riskAssessment.recommendedActions[0]) || 'Review CAPA',
                     reason: riskAssessment.regulatoryComplianceNote || 'ICH Q9 Framework',
@@ -169,9 +169,32 @@ export const useAiAssistant = () => {
           })
         );
 
-        if (uploadResult && uploadResult.extracted_fields) {
-          const fields = uploadResult.extracted_fields;
-          const risk = uploadResult.risk_assessment;
+        if (uploadResult) {
+          const rawData = uploadResult.autoFilledData || uploadResult.extracted_fields || {};
+          const risk = uploadResult.riskAssessment || uploadResult.risk_assessment;
+
+          const keyMap: Record<string, string> = {
+            customer_name: 'customerName',
+            complaint_source: 'complaintSource',
+            product_name: 'productName',
+            product_strength: 'productStrength',
+            batch_number: 'batchNumber',
+            manufacturing_date: 'manufacturingDate',
+            expiry_date: 'expiryDate',
+            affected_quantity: 'affectedQuantity',
+            complaint_category: 'complaintCategory',
+            complaint_description: 'complaintDescription',
+            initial_severity: 'initialSeverity',
+            priority: 'priority',
+          };
+
+          const cleanFields: Record<string, string> = {};
+          for (const [key, val] of Object.entries(rawData)) {
+            if (val !== null && val !== undefined && String(val).trim() !== '') {
+              const targetKey = keyMap[key] || key;
+              cleanFields[targetKey] = String(val);
+            }
+          }
 
           dispatch(
             setExtractionProgress({
@@ -181,21 +204,23 @@ export const useAiAssistant = () => {
             })
           );
 
-          dispatch(updateComplaint(fields));
+          if (Object.keys(cleanFields).length > 0) {
+            dispatch(updateComplaint(cleanFields));
+          }
 
           dispatch(
             addMessage({
               id: Date.now().toString(),
               sender: 'assistant',
-              text: uploadResult.extraction_summary || `Successfully parsed document **${file.name}**. Complaint form fields auto-populated via backend.`,
+              text: uploadResult.message || uploadResult.extraction_summary || `Successfully parsed document **${file.name}** using Groq AI. Complaint form fields auto-populated.`,
               timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               riskAssessment: risk
                 ? {
-                    severity: fields.initialSeverity || 'Critical',
-                    riskLevel: risk.risk_level || risk.riskLevel,
-                    nextAction: risk.recommended_actions?.[0] || 'Initiate quarantine',
-                    reason: risk.regulatory_compliance_note || 'ICH Q9 Quality Risk Assessment',
-                    confidenceScore: risk.score_value || 92,
+                    severity: (cleanFields.initialSeverity as 'Critical' | 'Major' | 'Minor') || 'Critical',
+                    riskLevel: risk.riskLevel || risk.risk_level || 'High Risk (Action Required)',
+                    nextAction: (risk.recommendedActions && risk.recommendedActions[0]) || (risk.recommended_actions && risk.recommended_actions[0]) || 'Initiate quarantine',
+                    reason: risk.regulatoryComplianceNote || risk.regulatory_compliance_note || 'ICH Q9 Quality Risk Assessment',
+                    confidenceScore: risk.scoreValue || risk.score_value || 92,
                   }
                 : undefined,
             })
