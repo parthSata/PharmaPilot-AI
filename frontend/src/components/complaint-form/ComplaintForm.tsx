@@ -7,16 +7,20 @@ import { FormInputGroup, Button, Badge, Card } from '../index';
 
 export const ComplaintForm: React.FC = React.memo(() => {
   const { complaint, handleReset } = useComplaintForm();
+  const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
 
   const handleSave = async () => {
-    if (!complaint.isFilled) return;
+    if (!complaint.isFilled || isSaving) return;
+    setIsSaving(true);
     try {
       await ApiBackendService.createComplaint(complaint);
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 3000);
     } catch (error) {
       console.error('Failed to save complaint to PostgreSQL backend:', error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -42,18 +46,19 @@ export const ComplaintForm: React.FC = React.memo(() => {
 
   const footerContent = (
     <>
-      <Button variant="outline" size="md" leftIcon={<RotateCcw className="w-3.5 h-3.5" />} onClick={handleReset}>
+      <Button variant="outline" size="md" leftIcon={<RotateCcw className="w-3.5 h-3.5" />} onClick={handleReset} disabled={isSaving}>
         Reset Form
       </Button>
 
       <Button
         variant="primary"
         size="md"
-        disabled={!complaint.isFilled}
+        isLoading={isSaving}
+        disabled={!complaint.isFilled || isSaving}
         leftIcon={isSaved ? <CheckCircle2 className="w-4 h-4" /> : <Save className="w-4 h-4" />}
         onClick={handleSave}
       >
-        {isSaved ? 'Complaint Saved!' : 'Save Complaint'}
+        {isSaving ? 'Saving Complaint...' : isSaved ? 'Complaint Saved!' : 'Save Complaint'}
       </Button>
     </>
   );

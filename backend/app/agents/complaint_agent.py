@@ -105,19 +105,52 @@ class ComplaintAgent:
             except Exception as e:
                 logger.warning(f"Groq LLM invocation/parsing failed ({e}), using regex rules.")
 
-        # Regex fallback for batch number extraction / correction
+        # Regex fallback for batch number extraction / correction (handles B.No, LOT, BATCH, PRC-XXXX, etc.)
         if not updates.batchNumber:
-            batch_match = re.search(r"batch\s*(?:number|no|#)?\s*(?:to|is|=)?\s*([A-Za-z0-9\-]+)", prompt, re.IGNORECASE)
-            if batch_match:
-                updates.batchNumber = batch_match.group(1).upper()
-                last_updated_field = "batchNumber"
+            batch_patterns = [
+                r"(?:batch|b\.?no|lot|b/n|bn)\s*(?:number|no|#)?\s*[:\-=]?\s*([A-Za-z0-9\-]{3,20})",
+                r"\b(PRC-\d{4,8})\b",
+                r"\b(LOT-?[A-Z0-9]{4,10})\b"
+            ]
+            for pat in batch_patterns:
+                bm = re.search(pat, prompt, re.IGNORECASE)
+                if bm:
+                    updates.batchNumber = bm.group(1).upper()
+                    if not last_updated_field:
+                        last_updated_field = "batchNumber"
+                    break
 
         # Regex fallback for affected quantity
         if not updates.affectedQuantity:
-            qty_match = re.search(r"(?:quantity|affected|amount)\s*(?:to|is|=)?\s*(\d+\s*(?:bottles|vials|packs|units|boxes)?)", prompt, re.IGNORECASE)
-            if qty_match:
-                updates.affectedQuantity = qty_match.group(1)
-                last_updated_field = "affectedQuantity"
+            qty_patterns = [
+                r"(?:quantity|affected|qty|amount)\s*[:\-=]?\s*(\d+\s*(?:bottles|vials|packs|units|boxes|tablets|capsules|cartons)?)",
+                r"\b(\d+\s*(?:bottles|vials|packs|units|boxes|tablets|capsules|cartons))\b"
+            ]
+            for qpat in qty_patterns:
+                qm = re.search(qpat, prompt, re.IGNORECASE)
+                if qm:
+                    updates.affectedQuantity = qm.group(1)
+                    if not last_updated_field:
+                        last_updated_field = "affectedQuantity"
+                    break
+
+        # Regex fallback for Expiry Date
+        if not updates.expiryDate:
+            exp_m = re.search(r"(?:exp|expiry|use\s*before|exp\.?\s*date)\s*[:\-=]?\s*(\d{1,2}[/\-]\d{2,4}|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*\d{2,4})", prompt, re.IGNORECASE)
+            if exp_m:
+                updates.expiryDate = exp_m.group(1)
+
+        # Regex fallback for Manufacturing Date
+        if not updates.manufacturingDate:
+            mfg_m = re.search(r"(?:mfg|mfd|manufacturing|mfg\.?\s*date)\s*[:\-=]?\s*(\d{1,2}[/\-]\d{2,4}|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*\d{2,4})", prompt, re.IGNORECASE)
+            if mfg_m:
+                updates.manufacturingDate = mfg_m.group(1)
+
+        # Regex fallback for Product Strength (e.g. 500mg, 250mg / 5ml, 50mg/ml)
+        if not updates.productStrength:
+            str_m = re.search(r"\b(\d+\s*(?:mg|g|mcg|ml|IU)\s*(?:/\s*\d*\s*ml)?)\b", prompt, re.IGNORECASE)
+            if str_m:
+                updates.productStrength = str_m.group(1)
 
         if is_edit and (last_updated_field or updates.batchNumber or updates.affectedQuantity):
             response_msg = (

@@ -127,6 +127,18 @@ export const useAiAssistant = () => {
 
   const uploadFile = useCallback(
     async (file: File) => {
+      const ext = file.name.split('.').pop()?.toLowerCase() || '';
+      const isImage = ['png', 'jpg', 'jpeg', 'webp', 'bmp'].includes(ext);
+      const fileTypeLabel = isImage
+        ? 'Quality Defect Image'
+        : ext === 'pdf'
+        ? 'PDF Document'
+        : ext === 'eml'
+        ? 'Email Quality Alert'
+        : ext === 'docx'
+        ? 'Word Document'
+        : 'Document Attachment';
+
       // Add user message with file attachment card
       dispatch(
         addMessage({
@@ -135,7 +147,7 @@ export const useAiAssistant = () => {
           fileAttachment: {
             name: file.name,
             size: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
-            type: 'PDF Document',
+            type: fileTypeLabel,
           },
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         })
